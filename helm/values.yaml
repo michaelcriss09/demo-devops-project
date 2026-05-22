@@ -26,6 +26,10 @@ ingress:
   enabled: true
   className: nginx
   host: ""
+  tls:
+    enabled: false          
+    clusterIssuer: "letsencrypt-prod"
+    secretName: ""
 
 resources:
   requests:
