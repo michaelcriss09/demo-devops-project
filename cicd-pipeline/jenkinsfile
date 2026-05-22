@@ -42,7 +42,7 @@ pipeline {
                         . venv/bin/activate
                         cd src
                         mkdir -p test-results
-                        python -m xmlrunner discover -s tests -o test-results
+                        DJANGO_SETTINGS_MODULE=demo.settings python -m xmlrunner discover -s tests -o test-results
                     '''
                 }
             }
