@@ -30,7 +30,7 @@ pipeline {
                     pip install --upgrade pip
                     pip install --no-cache-dir -r src/requirements.txt
                     pip install flake8
-                    pip install pytest pytest-cov
+                    pip install flake8 pytest pytest-cov unittest-xml-reporting
                 '''
             }
         }
@@ -41,7 +41,8 @@ pipeline {
                     sh '''
                         . venv/bin/activate
                         cd src
-                        python manage.py test tests --verbosity=2
+                        mkdir -p test-results
+                        python -m xmlrunner discover -s tests -o test-results
                     '''
                 }
             }
