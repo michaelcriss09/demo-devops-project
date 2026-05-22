@@ -30,7 +30,7 @@ pipeline {
                     pip install --upgrade pip
                     pip install --no-cache-dir -r src/requirements.txt
                     pip install flake8
-                    pip install flake8 pytest pytest-cov unittest-xml-reporting
+                    pip install flake8 pytest pytest-cov unittest-xml-reporting flake8-junit-report
                 '''
             }
         }
@@ -55,10 +55,21 @@ pipeline {
 
         stage('Static Code Analysis') {
             steps {
-                sh '''
-                    . venv/bin/activate
-                    flake8 src/ --max-line-length=120 --exclude=src/*/migrations/,src/manage.py || true
-                '''
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        . venv/bin/activate
+                        mkdir -p reports
+                        flake8 src/ --max-line-length=120 \
+                            --exclude=src/*/migrations/,src/manage.py \
+                            --format=junit-xml \
+                            --output-file=reports/flake8.xml || true
+                    '''
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'reports/flake8.xml'
+                }
             }
         }
 
