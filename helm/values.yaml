@@ -1,0 +1,43 @@
+replicaCount: 1
+
+environment: production
+
+image:
+  repository: ""
+  pullPolicy: Always
+  tag: "latest"
+  
+app:
+  djangoDebug: "False"
+  allowedHosts: "*"
+  databaseName: "data/db.sqlite3"
+  gunicornWorkers: "2"
+  gunicornThreads: "2"
+
+secret:
+  djangoSecretKey: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+persistence:
+  storageClass: gp2
+  size: 1Gi
+
+probes:
+  path: /api/users/

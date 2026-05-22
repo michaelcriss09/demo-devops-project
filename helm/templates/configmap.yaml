@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Release.Name }}
+data:
+  DATABASE_NAME: {{ .Values.app.databaseName | quote }}
+  DJANGO_DEBUG: {{ .Values.app.djangoDebug | quote }}
+  ALLOWED_HOSTS: {{ .Values.app.allowedHosts | quote }}
+  GUNICORN_WORKERS: {{ .Values.app.gunicornWorkers | quote }}
+  GUNICORN_THREADS: {{ .Values.app.gunicornThreads | quote }}

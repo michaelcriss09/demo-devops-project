@@ -1,0 +1,178 @@
+pipeline {
+    agent any
+
+    environment {
+        DJANGO_SECRET_KEY    = credentials('django-secret-key')
+        DATABASE_NAME        = 'db.sqlite3'
+
+        appRegistry          = 'ECR_REGISTRY_PLACEHOLDER'
+        devopsRegistry       = 'ECR_DEVOPS_REGISTRY_PLACEHOLDER'
+
+        ENV                  = 'demo'
+        IMAGE_TAG            = "latest"
+        HELM_RELEASE         = 'demo-devops-python'
+        HELM_CHART           = 'helm/'
+        APP_HOST             = 'demo.devopsweb.pw'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install dependencies') {
+            steps {
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install --no-cache-dir -r src/requirements.txt
+                    pip install flake8
+                    pip install pytest pytest-cov
+                '''
+            }
+        }
+
+        stage('Unit tests') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        . venv/bin/activate
+                        cd src
+                        python manage.py test tests --verbosity=2
+                    '''
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: '**/test-results/*.xml'
+                }
+            }
+        }
+
+        stage('Static Code Analysis') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    flake8 src/ --max-line-length=120 --exclude=src/*/migrations/,src/manage.py || true
+                '''
+            }
+        }
+
+        stage('Code Coverage') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    cd src
+                    coverage run -m pytest || true
+                    coverage xml -o coverage.xml || true
+                '''
+            }
+            post {
+                always {
+                    publishCoverage adapters: [coberturaAdapter('src/coverage.xml')]
+                }
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                sh """
+                    docker build -t ${appRegistry}:${BUILD_NUMBER} .
+                    docker tag ${appRegistry}:${BUILD_NUMBER} ${appRegistry}:${IMAGE_TAG}
+                """
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                script {
+                    withCredentials([[
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds'
+                    ]]) {
+                        sh """
+                            aws ecr get-login-password --region us-east-2 | \
+                            docker login --username AWS --password-stdin ${devopsRegistry}
+                            
+                            docker push ${appRegistry}:${BUILD_NUMBER}
+                            docker push ${appRegistry}:${IMAGE_TAG}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Configure kubectl') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+                    sh '''
+                        aws eks update-kubeconfig \
+                            --region us-east-2 \
+                            --name ${ENV}-eks-cluster
+                    '''
+                }
+            }
+        }
+
+        stage('Install Ingress Controller') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+                    sh """
+                        helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+                        helm repo update
+
+                        if ! helm status ingress-nginx -n ingress-nginx > /dev/null 2>&1; then
+                            helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+                                --namespace ingress-nginx \
+                                --create-namespace \
+                                --set controller.service.type=LoadBalancer \
+                                --wait \
+                                --timeout 5m
+                        else
+                            echo "Ingress controller already installed, skipping."
+                        fi
+                    """
+                }
+            }
+        }
+
+        stage('Deploy with Helm') {
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds'],
+                    string(credentialsId: 'django-secret-key', variable: 'DJANGO_SECRET_KEY')
+                ]) {
+                    sh '''
+                        helm upgrade --install demo-devops-python helm/ \
+                            --set image.repository=''' + appRegistry + ''' \
+                            --set image.tag=''' + BUILD_NUMBER + ''' \
+                            --set ingress.host=${APP_HOST} \
+                            --set secret.djangoSecretKey="${DJANGO_SECRET_KEY}" \
+                            --set persistence.storageClass=gp2 \
+                            --create-namespace \
+                            --namespace demo-devops \
+                            --wait \
+                            --timeout 5m
+                    '''
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed. Check the logs for details.'
+        }
+    }
+}

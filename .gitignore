@@ -1,0 +1,50 @@
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+.terraform.lock.hcl
+*.auto.tfvars
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.env
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+
+# Helm
+helm/charts/
+helm/*.lock
+
+# Jenkins
+.jenkins/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.pem
+*.key
+*.crt
+secrets.yaml
+kubeconfig
+terraform/.terraform.tfstate.lock.info

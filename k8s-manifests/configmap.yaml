@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-devops-python-config
+  namespace: demo-devops
+  labels:
+    app: demo-devops-python
+data:
+  DATABASE_NAME: "data/db.sqlite3"
+  DJANGO_DEBUG: "False"
+  ALLOWED_HOSTS: "*"
+  GUNICORN_WORKERS: "2"
+  GUNICORN_THREADS: "2"
