@@ -5,8 +5,8 @@ pipeline {
         DJANGO_SECRET_KEY    = credentials('django-secret-key')
         DATABASE_NAME        = 'db.sqlite3'
 
-        appRegistry          = 'ECR_REGISTRY_PLACEHOLDER'
-        devopsRegistry       = 'ECR_DEVOPS_REGISTRY_PLACEHOLDER'
+        appRegistry          = credentials('ecr-app-registry')
+        devopsRegistry       = credentials('ecr-devops-registry')
 
         ENV                  = 'demo'
         IMAGE_TAG            = "latest"
