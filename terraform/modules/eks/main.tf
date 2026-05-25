@@ -3,6 +3,10 @@ resource "aws_eks_cluster" "eks" {
   version  = var.eks_version
   role_arn = var.eks_role_arn
 
+  upgrade_policy {
+    support_type = "STANDARD"
+  }
+
   vpc_config {
     endpoint_private_access = false
     endpoint_public_access  = true

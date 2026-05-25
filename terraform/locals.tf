@@ -38,7 +38,7 @@ locals {
   }
 
   eks = {
-    eks_version        = "1.30"
+    eks_version        = "1.33"
     node_instance_type = ["t3.medium"]
     node_capacity_time = "ON_DEMAND"
   }
