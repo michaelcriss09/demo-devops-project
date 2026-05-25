@@ -2,9 +2,11 @@
 
 REST API built with Django REST Framework, containerized with Docker, and deployed on AWS EKS through a Jenkins pipeline and Helm.
 
-## AWS Architecture
+## AWS Architecture | [NOTE] INFRASTRUCTURE DELETED ON MONDAY 25TH AT 09:30 A.M.
+
 
 ![AWS Architecture](https://i.imgur.com/6Rgsdps.png)
+
 
 The infrastructure runs in **us-east-2** and is composed of:
 
